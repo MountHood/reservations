@@ -135,7 +135,7 @@ def reserve_slot():
     # Check if the specified slot is available (not reserved or confirmed)
     if any(
         reservation['provider_id'] == provider_id
-        and slot_start_time in reservation['slot']
+        and reservation['slot_start_time'] == slot_start_time
         and ('confirmed' in reservation
              or now < datetime.fromisoformat(reservation['expiry_time']))
         for reservation in reservations
@@ -146,15 +146,15 @@ def reserve_slot():
     # This is a critical section. If two concurrent requests come in to reserve the
     # same appointment, the provider could be double booked.
     # For this challenge, this is handled because Flask's development server (Werkzeug)
-    # only handles 1 request at a time. For production, could rely on database
+    # only handles 1 request at a time. For production, rely on database
     # mechanism to handle, e.g., unique constraint.
     reservation_id = len(reservations) + 1
     reservation = {
-        'id': reservation_id,
+        'reservation_id': reservation_id,
         'client_id': client_id,
         'provider_id': provider_id,
         'slot_start_time': slot_start_time,
-        'slot_end_time': slot_start_time + timedelta(minutes=APPOINTMENT_LENGTH_MINUTES),
+        'slot_end_time': (slot_start_datetime + timedelta(minutes=APPOINTMENT_LENGTH_MINUTES)).isoformat(),
         'expiry_time': (now + timedelta(minutes=RESERVATION_EXPIRY_TIME_MINUTES)).isoformat()
     }
     reservations.append(reservation)
@@ -173,7 +173,7 @@ def confirm_reservation():
         return jsonify({'error': 'client_id and reservation_id are required'}), 400
 
     for reservation in reservations:
-        if reservation['id'] == reservation_id:
+        if reservation['reservation_id'] == reservation_id:
             # Make sure the correct client_id is in request, just in case
             if client_id != reservation['client_id']:
                 return jsonify({'error': 'Unexpected client_id'}), 400
