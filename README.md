@@ -13,6 +13,7 @@ Reservations api
 **POST /providers**
 
 Endpoint for providers to submit available times.
+Start and end times should be in UTC.
 
 Example request:
 

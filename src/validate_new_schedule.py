@@ -46,6 +46,16 @@ def validate_new_schedule(provider: dict, new_schedule: list, appt_len_mins: int
         except:
             return False
 
+        # Ensure that times are in UTC
+        if start_time.utcoffset() is None or start_time.utcoffset().total_seconds() != 0:
+            return False
+        if end_time.utcoffset() is None or end_time.utcoffset().total_seconds() != 0:
+            return False
+
+        # Check if seconds are equal to 0
+        if start_time.second != 0 or end_time.second != 0:
+            return False
+
         # Check if start and end times are an interval
         # of exactly `appt_len_mins` minutes from the top of the hour
         if (start_time.minute % appt_len_mins != 0) or (end_time.minute % appt_len_mins != 0):
