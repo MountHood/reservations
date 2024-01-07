@@ -117,13 +117,17 @@ def reserve_slot():
     try:
         slot_start_datetime = datetime.fromisoformat(slot_start_time)
     except:
-        return jsonify({'error': 'slot_start_datetime is invalid ISO date string'}), 404
+        return jsonify({'error': 'slot_start_datetime is invalid ISO date string'}), 400
+    
+    # Ensure that slot_start_datetime is in UTC
+    if slot_start_datetime.utcoffset() is None or slot_start_datetime.utcoffset().total_seconds() != 0:
+        return jsonify({'error': 'slot_start_datetime must be in UTC'}), 400
 
     # Check if the slot start time is within the next `RESERVATION_MIN_HOURS_IN_ADVANCE` hours
     if slot_start_datetime < now + timedelta(hours=RESERVATION_MIN_HOURS_IN_ADVANCE):
         return jsonify({'error': 'Must reserve '
                                  f'{RESERVATION_MIN_HOURS_IN_ADVANCE} '
-                                 'hours in advance'}), 404
+                                 'hours in advance'}), 400
 
     # Check if the specified slot is within the provider's schedule
     provider = providers[provider_id]
@@ -177,6 +181,10 @@ def confirm_reservation():
             # Make sure the correct client_id is in request, just in case
             if client_id != reservation['client_id']:
                 return jsonify({'error': 'Unexpected client_id'}), 400
+            
+            # Make sure reservation isn't already confirmed
+            if 'confirmed' in reservation:
+                return jsonify({'error': 'Reservation has already been confirmed'}), 400
 
             if now < datetime.fromisoformat(reservation['expiry_time']):
                 # Remove expiration and set to confirmed
